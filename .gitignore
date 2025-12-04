@@ -1,0 +1,13 @@
+.*
+llama.cpp
+olmo_model
+open-webui
+tokenizer
+olmo2_quantized.gguf
+data/*
+__pycache__
+
+olmo_rag.ipynb
+chroma.ipynb
+qdrant.ipynb
+main.py
