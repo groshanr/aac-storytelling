@@ -29,7 +29,7 @@ https://huggingface.co/spaces/groshanr/AACtive_Storytelling).
 - Your preferred method of locally running an LLM. I recommend [LM Studio](https://lmstudio.ai/).
 
 #### Run LLM locally
-1. Download ```olmo2_quantized_ft.gguf```.
+1. Download ```olmo2_quantized_ft.gguf``` file from [groshanr/olmo2_quantized_ft.gguf](https://huggingface.co/groshanr/olmo2_quantized_ft.gguf).
 1. Ensure that the GGUF file is in the Models Directory. You can find that location in the third tab with a folder icon in LM Studio.
 2. Load the model in.
 3. Serve the model on localhost. See [this documentation](https://lmstudio.ai/docs/developer/core/server) from LM Studio.
