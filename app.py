@@ -9,17 +9,6 @@ client = OpenAI(
     base_url = 'http://127.0.0.1:1234/v1', # or "http://172.20.20.20:1234/v1",
     api_key = "lm-studio"
 )
-def send_prompt(user_input, story_text):
-    return f'''
-    You are a story writing assistant that helps write one sentence at a time using keywords provided by the user
-    and the story so far.
-
-    Instructions:
-    * Use the keywords in {user_input} to write the next sentence for {story_text}
-    * Be concise. Only write one sentence. All other information will be ignored!
-    * Use less than 10 words and only one period.
-
-'''
 
 def query_local_llm(user_input, story_text):
     """
@@ -30,8 +19,8 @@ def query_local_llm(user_input, story_text):
     if not user_input.strip():
         return "Please enter a prompt."
     try:
-        # Always start a new conversation
-        # prompt = send_prompt(user_input, story_text)
+
+        # Prompt template modified from @TheOdbball https://www.reddit.com/r/PromptEngineering/comments/1nt7x7v/after_1000_hours_of_prompt_engineering_i_found/
         response = client.responses.create(
             model = "allenai/olmo-2-1124-7b/olmo2_quantized_ft.gguf",
             input = [
@@ -40,7 +29,18 @@ def query_local_llm(user_input, story_text):
                     "content": [
                         {
                             "type": "input_text",
-                            "text": f"Write one sentence for the story using the keywords provided by the user. Be concise!!!"
+                            "text": 
+                            """
+                                ///▙▖▙▖▞▞▙▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂▂
+                                ▛///▞ PRISM KERNEL ::
+                                //▞▞〔Purpose · Rules · Identity · Structure · Motion〕
+                                P:: write.a.story ∙ write.single.output  
+                                R:: be.concise ∙ incorporate.story_text ∙ express.one.idea.only
+                                I:: user_input ∙ story_text
+                                S:: read.story_text → read.user_input → generate.sentence.using.both
+                                M:: output: one.sentence  
+                                :: ∎
+                            """
                         }
                     ]
                 },
@@ -67,19 +67,10 @@ def query_local_llm(user_input, story_text):
                 "format": {
                 "type": "text"
                 }
-            },
-        max_output_tokens=15
+            }
         )
-        # response = client.chat.completions.create(
-        #     model="allenai/olmo-2-1124-7b/olmo2_quantized_ft.gguf",
-        #     messages=[
-        #         {"role": "user", "content": prompt}
-        #     ],
-        #     max_completion_tokens=20
-            
-        # )
         return response.output_text
-        # return response.choices[0].message.content
+    
     except Exception as e:
         return f"Error: {str(e)}"
 
