@@ -4,34 +4,88 @@ from openai import OpenAI
 
 # Set up the local LM Studio endpoint
 story = []
+
 client = OpenAI(
     base_url = 'http://127.0.0.1:1234/v1', # or "http://172.20.20.20:1234/v1",
     api_key = "lm-studio"
 )
-def send_prompt(prompt):
-    return f'Write a sentence using these words in order: {prompt}'
+def send_prompt(user_input, story_text):
+    return f'''
+    You are a story writing assistant that helps write one sentence at a time using keywords provided by the user
+    and the story so far.
 
-def query_local_llm(prompt):
+    Instructions:
+    * Use the keywords in {user_input} to write the next sentence for {story_text}
+    * Be concise. Only write one sentence. All other information will be ignored!
+    * Use less than 10 words and only one period.
+
+'''
+
+def query_local_llm(user_input, story_text):
     """
     Sends a prompt to LM Studio’s local LLM and returns the response.
     Each query is treated as an independent session.
     """
-    if not prompt.strip():
+    
+    if not user_input.strip():
         return "Please enter a prompt."
     try:
         # Always start a new conversation
-        prompt = send_prompt(prompt)
-        response = client.chat.completions.create(
-            model="olmo-2-1124-7b",
-            messages=[
-                {"role": "user", "content": prompt}
+        # prompt = send_prompt(user_input, story_text)
+        response = client.responses.create(
+            model = "allenai/olmo-2-1124-7b/olmo2_quantized_ft.gguf",
+            input = [
+                {
+                    "role": "system",
+                    "content": [
+                        {
+                            "type": "input_text",
+                            "text": f"Write one sentence for the story using the keywords provided by the user. Be concise!!!"
+                        }
+                    ]
+                },
+                {
+                    "role": "system",
+                    "content": [
+                        {
+                            "type": "input_text",
+                            "text": story_text
+                        }
+                    ]
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "input_text",
+                            "text": user_input
+                        }
+                    ]
+                }
             ],
-            max_completion_tokens=50
+            text={
+                "format": {
+                "type": "text"
+                }
+            },
+        max_output_tokens=15
         )
-        return response.choices[0].message.content
+        # response = client.chat.completions.create(
+        #     model="allenai/olmo-2-1124-7b/olmo2_quantized_ft.gguf",
+        #     messages=[
+        #         {"role": "user", "content": prompt}
+        #     ],
+        #     max_completion_tokens=20
+            
+        # )
+        return response.output_text
+        # return response.choices[0].message.content
     except Exception as e:
         return f"Error: {str(e)}"
-    
+
+def clear_story_so_far():
+    return ""
+
 def clear_textboxes():
     """
     Clears both the input and output textboxes.
@@ -50,80 +104,147 @@ def story_so_far(story, output_text):
     """
     return '{0} {1}'.format(story, output_text)
 
+
 # Create a Gradio interface
 with gr.Blocks() as demo:
     gr.Markdown("# AACtive Storytelling")
-    with gr.Group():
-        with gr.Row():
-            with gr.Row(scale=2):
-                magic = gr.Button("magic")
-                fight = gr.Button("fight")
-                sword = gr.Button("sword")
-                wand = gr.Button("wand")
-                potion = gr.Button("potion")
-                see = gr.Button("see")
-                find = gr.Button("find")
-                get = gr.Button("get")
-                run = gr.Button("run")
-                say = gr.Button("say")
-                want = gr.Button("want")
-                think = gr.Button("think")
-                use = gr.Button("use")
-                feel = gr.Button("feel")
-                go = gr.Button("go")
-                crown = gr.Button("crown")
-                armor = gr.Button("armor")
-                treasure = gr.Button("treasure")
-                kingdom = gr.Button("kingdom")
-                castle = gr.Button("castle")
-                dragon = gr.Button("dragon")
-                king = gr.Button("king")
-                queen = gr.Button("queen")
-                wizard = gr.Button("wizard")
-                princess = gr.Button("princess")
-                prince = gr.Button("prince")
-                knight = gr.Button("knight")
-                happy = gr.Button("happy")
-                sad = gr.Button("sad")
-                scared = gr.Button("scared")
-                angry = gr.Button("angry")
-                worried = gr.Button("worried")
-                surprised = gr.Button("surprised")
-                good = gr.Button("good")
-                bad = gr.Button("bad")
-                big = gr.Button("big")
-                small = gr.Button("small")
-                strong = gr.Button("strong")
-                weak = gr.Button("weak")
-                brave = gr.Button("brave")
-                secret = gr.Button("secret")
-                powerful = gr.Button("powerful")
-                but = gr.Button("but")
-                so = gr.Button("so")
-                because = gr.Button("because")
-                if_button = gr.Button("if")
-                when_button = gr.Button("when")
-                and_button = gr.Button("and")
-                before = gr.Button("before")
-                after = gr.Button("after")
-                now = gr.Button("now")
-                then = gr.Button("then")
-                spirit = gr.Button("spirit")
-                evil = gr.Button("evil")
-                curse  = gr.Button("curse")
-                bless = gr.Button("bless")
-                loyal = gr.Button("loyal")
-                love = gr.Button("love")
-                hate = gr.Button("hate")
-                fear = gr.Button("fear")
-
-            with gr.Column():
-                story_text = gr.Textbox(
-                    lines = 16,
-                    label="The Story So Far"
-                )    
+    with gr.Row(scale=2):
+        with gr.Group():
+        
+            radio_btn = gr.Radio(choices=['Adventure', 'Science Fiction', 'Mystery', 'Fantasy', 'Horror'], label='Choose a genre', show_label=True)
+            @gr.render(inputs=[radio_btn], triggers=[radio_btn.select, radio_btn.change, radio_btn.input])
+            def generate_aac_board(genre):
+                button_list = []
+                if genre == 'Adventure':
+                    word_list = ['amulet', 'attempt', 'away', 'beast', 'canyon', 'captain', 'cave', 'chest', 'chosen', 'city', 'cliffs', 
+                                'coast', 'community', 'curse', 'daring', 'deadly', 'door', 'dragon', 'elder', 'enchanted', 'explore', 'fear', 
+                                'festival', 'forces', 'greed', 'guardian', 'house', 'island', 'key', 'lair', 'legends', 'live', 'man', 'map', 
+                                'nature', 'pass', 'path', 'pirate', 'power', 'prize', 'prophecy', 'quickly', 'rainforest', 'relic', 'rule', 
+                                'sea', 'seek', 'shade', 'shipwreck', 'staff', 'star', 'statue', 'storm', 'symbols', 'towns', 'treasures', 
+                                'tunnels', 'vengeance', 'wealth', 'woman']
+                    with gr.Row(scale=2):
+                        for i, word in enumerate(word_list):
+                            button_list.append(gr.Button(word))
+        
             
-           
+                elif genre == 'Science Fiction':
+                    word_list = ['ability', 'agent', 'artifact', 'brain', 'chamber', 'chance', 'city', 'colony', 'corrupt', 'cosmic', 'dark', 
+                                'defeat', 'elysium', 'enigma', 'essence', 'explore', 'galactic', 'gateway', 'guardian', 'harmonizer', 
+                                'homeworld', 'influence', 'interfere', 'justice', 'launch', 'leader', 'leap', 'legend', 'machine', 'message', 
+                                'nebula', 'planet', 'prevent', 'project', 'psychic', 'quantum', 'realm', 'resource', 'restore', 'rift', 'rule', 
+                            'search', 'self', 'shadow', 'ship', 'society', 'solution', 'surface', 'syndicate', 'tactic', 'teleportation', 
+                            'thought', 'timeline', 'traitor', 'travel', 'truth', 'uncover', 'universe', 'voyager', 'world']
+                    with gr.Row(scale=2):
+                        for i, word in enumerate(word_list):
+                            button_list.append(gr.Button(word))
+                    
+                    
+                elif genre == 'Mystery':
+                    word_list = ['abyss', 'amulet', 'artifact', 'beautiful', 'beloved', 'book', 'brief', 'case', 'change', 'chest', 'clue', 
+                                'collector', 'confession', 'crypt', 'decade', 'decision', 'dimly', 'entity', 'estate', 'exit', 'figure', 
+                                'friend', 'gems', 'gold', 'guise', 'heart', 'hill', 'house', 'labyrinth', 'library', 'location', 'locket', 
+                                'lord', 'manor', 'mansion', 'map', 'monstrous', 'passage', 'person', 'previous', 'riddle', 'room', 'rumor', 
+                                'scroll', 'shadow', 'share', 'silver', 'store', 'storm', 'suddenly', 'temple', 'theft', 'threaten', 'tragic', 
+                                'trial', 'unknown', 'vanishing', 'wall', 'wealth', 'wisdom']
+                    with gr.Row(scale=2):
+                        for i, word in enumerate(word_list):
+                            button_list.append(gr.Button(word))
+                    
+                    
+                elif genre == 'Fantasy':
+                    word_list = ['abyss', 'amulet', 'artifact', 'beast', 'book', 'celestial', 'chest', 'consume', 'cosmos', 'council', 
+                                'curiosity', 'darkness', 'decision', 'destroy', 'dragon', 'element', 'embodiment', 'emerge', 'enchanted', 
+                                'endless', 'energy', 'eternal', 'forest', 'glow', 'goblin', 'heart', 'hero', 'hold', 'hope', 'isle', 'king', 
+                                'kingdom', 'lady', 'lair', 'lord', 'magical', 'past', 'path', 'plague', 'prince', 'princess', 'prosperity', 
+                                'queen', 'realm', 'return', 'savior', 'sceptre', 'scorch', 'scroll', 'solve', 'spell', 'spire', 'stole', 
+                                'sword', 'terrible', 'universe', 'villain', 'vow', 'whisper', 'world']
+                    with gr.Row(scale=2):
+                        for i, word in enumerate(word_list):
+                            button_list.append(gr.Button(word))
+                    
+                    
+                elif genre == 'Horror':
+                    word_list = ['ancestor', 'artifact', 'beneath', 'book', 'cabin', 'carry', 'catacombs', 'cold', 'confront', 'consume', 
+                                'creature', 'creek', 'cult', 'death', 'defeat', 'dormant', 'encounter', 'energy', 'engulf', 'entity', 'fall', 
+                                'fear', 'figure', 'foggy', 'forest', 'hermit', 'hill', 'hollow', 'house', 'howl', 'imagination', 'incantation', 
+                                'involve', 'knock', 'library', 'magic', 'mansion', 'mirror', 'missing', 'occult', 'ordinary', 'plead', 'protect', 
+                                'recall', 'reclusive', 'remain', 'ritual', 'seen', 'send', 'shadow', 'smile', 'spirit', 'torment', 'townsfolk', 
+                                'tree', 'village', 'warning', 'whisper', 'wicked', 'witch']
+                    with gr.Row(scale=2):
+                        for i, word in enumerate(word_list):
+                            button_list.append(gr.Button(word))
+
+                # Reference: #https://stackoverflow.com/questions/78536915/how-use-gradios-gr-button-click-so-that-it-passes-a-local-variable-that-is-no    
+                button_list[0].click(lambda txt_value: create_prompt(txt_value, word_list[0]), inputs=[input_text], outputs=[input_text])
+                button_list[1].click(lambda txt_value: create_prompt(txt_value, word_list[1]), inputs=[input_text], outputs=[input_text])
+                button_list[2].click(lambda txt_value: create_prompt(txt_value, word_list[2]), inputs=[input_text], outputs=[input_text])
+                button_list[3].click(lambda txt_value: create_prompt(txt_value, word_list[3]), inputs=[input_text], outputs=[input_text])
+                button_list[4].click(lambda txt_value: create_prompt(txt_value, word_list[4]), inputs=[input_text], outputs=[input_text])
+                button_list[5].click(lambda txt_value: create_prompt(txt_value, word_list[5]), inputs=[input_text], outputs=[input_text])
+                button_list[6].click(lambda txt_value: create_prompt(txt_value, word_list[6]), inputs=[input_text], outputs=[input_text])
+                button_list[7].click(lambda txt_value: create_prompt(txt_value, word_list[7]), inputs=[input_text], outputs=[input_text])
+                button_list[8].click(lambda txt_value: create_prompt(txt_value, word_list[8]), inputs=[input_text], outputs=[input_text])
+                button_list[9].click(lambda txt_value: create_prompt(txt_value, word_list[9]), inputs=[input_text], outputs=[input_text])
+                button_list[10].click(lambda txt_value: create_prompt(txt_value, word_list[10]), inputs=[input_text], outputs=[input_text])
+                button_list[11].click(lambda txt_value: create_prompt(txt_value, word_list[11]), inputs=[input_text], outputs=[input_text])
+                button_list[12].click(lambda txt_value: create_prompt(txt_value, word_list[12]), inputs=[input_text], outputs=[input_text])
+                button_list[13].click(lambda txt_value: create_prompt(txt_value, word_list[13]), inputs=[input_text], outputs=[input_text])
+                button_list[14].click(lambda txt_value: create_prompt(txt_value, word_list[14]), inputs=[input_text], outputs=[input_text])
+                button_list[15].click(lambda txt_value: create_prompt(txt_value, word_list[15]), inputs=[input_text], outputs=[input_text])
+                button_list[16].click(lambda txt_value: create_prompt(txt_value, word_list[16]), inputs=[input_text], outputs=[input_text])
+                button_list[17].click(lambda txt_value: create_prompt(txt_value, word_list[17]), inputs=[input_text], outputs=[input_text])
+                button_list[18].click(lambda txt_value: create_prompt(txt_value, word_list[18]), inputs=[input_text], outputs=[input_text])
+                button_list[19].click(lambda txt_value: create_prompt(txt_value, word_list[19]), inputs=[input_text], outputs=[input_text])
+                button_list[20].click(lambda txt_value: create_prompt(txt_value, word_list[20]), inputs=[input_text], outputs=[input_text])
+                button_list[21].click(lambda txt_value: create_prompt(txt_value, word_list[21]), inputs=[input_text], outputs=[input_text])
+                button_list[22].click(lambda txt_value: create_prompt(txt_value, word_list[22]), inputs=[input_text], outputs=[input_text])
+                button_list[23].click(lambda txt_value: create_prompt(txt_value, word_list[23]), inputs=[input_text], outputs=[input_text])
+                button_list[24].click(lambda txt_value: create_prompt(txt_value, word_list[24]), inputs=[input_text], outputs=[input_text])
+                button_list[25].click(lambda txt_value: create_prompt(txt_value, word_list[25]), inputs=[input_text], outputs=[input_text])
+                button_list[26].click(lambda txt_value: create_prompt(txt_value, word_list[26]), inputs=[input_text], outputs=[input_text])
+                button_list[27].click(lambda txt_value: create_prompt(txt_value, word_list[27]), inputs=[input_text], outputs=[input_text])
+                button_list[28].click(lambda txt_value: create_prompt(txt_value, word_list[28]), inputs=[input_text], outputs=[input_text])
+                button_list[29].click(lambda txt_value: create_prompt(txt_value, word_list[29]), inputs=[input_text], outputs=[input_text])
+                button_list[30].click(lambda txt_value: create_prompt(txt_value, word_list[30]), inputs=[input_text], outputs=[input_text])
+                button_list[31].click(lambda txt_value: create_prompt(txt_value, word_list[31]), inputs=[input_text], outputs=[input_text])
+                button_list[32].click(lambda txt_value: create_prompt(txt_value, word_list[32]), inputs=[input_text], outputs=[input_text])
+                button_list[33].click(lambda txt_value: create_prompt(txt_value, word_list[33]), inputs=[input_text], outputs=[input_text])
+                button_list[34].click(lambda txt_value: create_prompt(txt_value, word_list[34]), inputs=[input_text], outputs=[input_text])
+                button_list[35].click(lambda txt_value: create_prompt(txt_value, word_list[35]), inputs=[input_text], outputs=[input_text])
+                button_list[36].click(lambda txt_value: create_prompt(txt_value, word_list[36]), inputs=[input_text], outputs=[input_text])
+                button_list[37].click(lambda txt_value: create_prompt(txt_value, word_list[37]), inputs=[input_text], outputs=[input_text])
+                button_list[38].click(lambda txt_value: create_prompt(txt_value, word_list[38]), inputs=[input_text], outputs=[input_text])
+                button_list[39].click(lambda txt_value: create_prompt(txt_value, word_list[39]), inputs=[input_text], outputs=[input_text])
+                button_list[40].click(lambda txt_value: create_prompt(txt_value, word_list[40]), inputs=[input_text], outputs=[input_text])
+                button_list[41].click(lambda txt_value: create_prompt(txt_value, word_list[41]), inputs=[input_text], outputs=[input_text])
+                button_list[42].click(lambda txt_value: create_prompt(txt_value, word_list[42]), inputs=[input_text], outputs=[input_text])
+                button_list[43].click(lambda txt_value: create_prompt(txt_value, word_list[43]), inputs=[input_text], outputs=[input_text])
+                button_list[44].click(lambda txt_value: create_prompt(txt_value, word_list[44]), inputs=[input_text], outputs=[input_text])
+                button_list[45].click(lambda txt_value: create_prompt(txt_value, word_list[45]), inputs=[input_text], outputs=[input_text])
+                button_list[46].click(lambda txt_value: create_prompt(txt_value, word_list[46]), inputs=[input_text], outputs=[input_text])
+                button_list[47].click(lambda txt_value: create_prompt(txt_value, word_list[47]), inputs=[input_text], outputs=[input_text])
+                button_list[48].click(lambda txt_value: create_prompt(txt_value, word_list[48]), inputs=[input_text], outputs=[input_text])
+                button_list[49].click(lambda txt_value: create_prompt(txt_value, word_list[49]), inputs=[input_text], outputs=[input_text])
+                button_list[50].click(lambda txt_value: create_prompt(txt_value, word_list[50]), inputs=[input_text], outputs=[input_text])
+                button_list[51].click(lambda txt_value: create_prompt(txt_value, word_list[51]), inputs=[input_text], outputs=[input_text])
+                button_list[52].click(lambda txt_value: create_prompt(txt_value, word_list[52]), inputs=[input_text], outputs=[input_text])
+                button_list[53].click(lambda txt_value: create_prompt(txt_value, word_list[53]), inputs=[input_text], outputs=[input_text])
+                button_list[54].click(lambda txt_value: create_prompt(txt_value, word_list[54]), inputs=[input_text], outputs=[input_text])
+                button_list[55].click(lambda txt_value: create_prompt(txt_value, word_list[55]), inputs=[input_text], outputs=[input_text])
+                button_list[56].click(lambda txt_value: create_prompt(txt_value, word_list[56]), inputs=[input_text], outputs=[input_text])
+                button_list[57].click(lambda txt_value: create_prompt(txt_value, word_list[57]), inputs=[input_text], outputs=[input_text])
+                button_list[58].click(lambda txt_value: create_prompt(txt_value, word_list[58]), inputs=[input_text], outputs=[input_text])
+                button_list[59].click(lambda txt_value: create_prompt(txt_value, word_list[59]), inputs=[input_text], outputs=[input_text])  
+
+        with gr.Column():
+            with gr.Group():
+                story_text = gr.Textbox(
+                        lines = 24,
+                        label="The Story So Far"
+                ) 
+                story_clear_btn = gr.Button("Start Over")
+            
+
     with gr.Row():
         input_text = gr.Textbox(
             lines=5,
@@ -135,82 +256,23 @@ with gr.Blocks() as demo:
         output_text = gr.Textbox(
             lines=5,
             label="LLM’s Suggestion",
-            interactive = True
+            interactive = True,
         ) 
-    
+
+               
+            
     with gr.Row():
         submit_btn = gr.Button("Generate", variant="primary")
         clear_btn = gr.Button("Clear")    
         retry_btn = gr.Button("Retry")    
         save_btn = gr.Button("Accept")
    
-    # Reference: #https://stackoverflow.com/questions/78536915/how-use-gradios-gr-button-click-so-that-it-passes-a-local-variable-that-is-no
-    magic.click(lambda txt_value: create_prompt(txt_value, 'magic'), inputs=[input_text], outputs=[input_text])
-    fight.click(lambda txt_value: create_prompt(txt_value, 'fight'), inputs=[input_text], outputs=[input_text])
-    sword.click(lambda txt_value: create_prompt(txt_value, 'sword'), inputs=[input_text], outputs=[input_text])
-    wand.click(lambda txt_value: create_prompt(txt_value, 'wand'), inputs=[input_text], outputs=[input_text])
-    potion.click(lambda txt_value: create_prompt(txt_value, 'potion'), inputs=[input_text], outputs=[input_text])
-    see.click(lambda txt_value: create_prompt(txt_value, 'see'), inputs=[input_text], outputs=[input_text])
-    find.click(lambda txt_value: create_prompt(txt_value, 'find'), inputs=[input_text], outputs=[input_text])
-    get.click(lambda txt_value: create_prompt(txt_value, 'get'), inputs=[input_text], outputs=[input_text])
-    run.click(lambda txt_value: create_prompt(txt_value, 'run'), inputs=[input_text], outputs=[input_text])
-    say.click(lambda txt_value: create_prompt(txt_value, 'say'), inputs=[input_text], outputs=[input_text])
-    want.click(lambda txt_value: create_prompt(txt_value, 'want'), inputs=[input_text], outputs=[input_text])
-    think.click(lambda txt_value: create_prompt(txt_value, 'think'), inputs=[input_text], outputs=[input_text])
-    use.click(lambda txt_value: create_prompt(txt_value, 'use'), inputs=[input_text], outputs=[input_text])
-    feel.click(lambda txt_value: create_prompt(txt_value, 'feel'), inputs=[input_text], outputs=[input_text])
-    go.click(lambda txt_value: create_prompt(txt_value, 'go'), inputs=[input_text], outputs=[input_text])
-    crown.click(lambda txt_value: create_prompt(txt_value, 'crown'), inputs=[input_text], outputs=[input_text])
-    armor.click(lambda txt_value: create_prompt(txt_value, 'armor'), inputs=[input_text], outputs=[input_text])
-    treasure.click(lambda txt_value: create_prompt(txt_value, 'treasure'), inputs=[input_text], outputs=[input_text])
-    kingdom.click(lambda txt_value: create_prompt(txt_value, 'kingdom'), inputs=[input_text], outputs=[input_text])
-    castle.click(lambda txt_value: create_prompt(txt_value, 'castle'), inputs=[input_text], outputs=[input_text])
-    dragon.click(lambda txt_value: create_prompt(txt_value, 'dragon'), inputs=[input_text], outputs=[input_text])
-    king.click(lambda txt_value: create_prompt(txt_value, 'king'), inputs=[input_text], outputs=[input_text])
-    queen.click(lambda txt_value: create_prompt(txt_value, 'queen'), inputs=[input_text], outputs=[input_text])
-    wizard.click(lambda txt_value: create_prompt(txt_value, 'wizard'), inputs=[input_text], outputs=[input_text])
-    princess.click(lambda txt_value: create_prompt(txt_value, 'princess'), inputs=[input_text], outputs=[input_text])
-    prince.click(lambda txt_value: create_prompt(txt_value, 'prince'), inputs=[input_text], outputs=[input_text])
-    knight.click(lambda txt_value: create_prompt(txt_value, 'knight'), inputs=[input_text], outputs=[input_text])
-    happy.click(lambda txt_value: create_prompt(txt_value, 'happy'), inputs=[input_text], outputs=[input_text])
-    sad.click(lambda txt_value: create_prompt(txt_value, 'sad'), inputs=[input_text], outputs=[input_text])
-    scared.click(lambda txt_value: create_prompt(txt_value, 'scared'), inputs=[input_text], outputs=[input_text])
-    angry.click(lambda txt_value: create_prompt(txt_value, 'angry'), inputs=[input_text], outputs=[input_text])
-    worried.click(lambda txt_value: create_prompt(txt_value, 'worried'), inputs=[input_text], outputs=[input_text])
-    surprised.click(lambda txt_value: create_prompt(txt_value, 'surprised'), inputs=[input_text], outputs=[input_text])
-    good.click(lambda txt_value: create_prompt(txt_value, 'good'), inputs=[input_text], outputs=[input_text])
-    bad.click(lambda txt_value: create_prompt(txt_value, 'bad'), inputs=[input_text], outputs=[input_text])
-    big.click(lambda txt_value: create_prompt(txt_value, 'big'), inputs=[input_text], outputs=[input_text])
-    small.click(lambda txt_value: create_prompt(txt_value, 'small'), inputs=[input_text], outputs=[input_text])
-    strong.click(lambda txt_value: create_prompt(txt_value, 'strong'), inputs=[input_text], outputs=[input_text])
-    weak.click(lambda txt_value: create_prompt(txt_value, 'weak'), inputs=[input_text], outputs=[input_text])
-    brave.click(lambda txt_value: create_prompt(txt_value, 'brave'), inputs=[input_text], outputs=[input_text])
-    secret.click(lambda txt_value: create_prompt(txt_value, 'secret'), inputs=[input_text], outputs=[input_text])
-    powerful.click(lambda txt_value: create_prompt(txt_value, 'powerful'), inputs=[input_text], outputs=[input_text])
-    but.click(lambda txt_value: create_prompt(txt_value, 'but'), inputs=[input_text], outputs=[input_text])
-    so.click(lambda txt_value: create_prompt(txt_value, 'so'), inputs=[input_text], outputs=[input_text])
-    because.click(lambda txt_value: create_prompt(txt_value, 'because'), inputs=[input_text], outputs=[input_text])
-    if_button.click(lambda txt_value: create_prompt(txt_value, 'if'), inputs=[input_text], outputs=[input_text])
-    when_button.click(lambda txt_value: create_prompt(txt_value, 'when'), inputs=[input_text], outputs=[input_text])
-    and_button.click(lambda txt_value: create_prompt(txt_value, 'and'), inputs=[input_text], outputs=[input_text])
-    before.click(lambda txt_value: create_prompt(txt_value, 'before'), inputs=[input_text], outputs=[input_text])
-    after.click(lambda txt_value: create_prompt(txt_value, 'after'), inputs=[input_text], outputs=[input_text])
-    now.click(lambda txt_value: create_prompt(txt_value, 'now'), inputs=[input_text], outputs=[input_text])
-    then.click(lambda txt_value: create_prompt(txt_value, 'then'), inputs=[input_text], outputs=[input_text])
-    spirit.click(lambda txt_value: create_prompt(txt_value, 'spirit'), inputs=[input_text], outputs=[input_text])
-    evil.click(lambda txt_value: create_prompt(txt_value, 'evil'), inputs=[input_text], outputs=[input_text])
-    curse.click(lambda txt_value: create_prompt(txt_value, 'curse'), inputs=[input_text], outputs=[input_text])
-    bless.click(lambda txt_value: create_prompt(txt_value, 'bless'), inputs=[input_text], outputs=[input_text])
-    loyal.click(lambda txt_value: create_prompt(txt_value, 'loyal'), inputs=[input_text], outputs=[input_text])
-    love.click(lambda txt_value: create_prompt(txt_value, 'love'), inputs=[input_text], outputs=[input_text])
-    hate.click(lambda txt_value: create_prompt(txt_value, 'hate'), inputs=[input_text], outputs=[input_text])
-    fear.click(lambda txt_value: create_prompt(txt_value, 'fear'), inputs=[input_text], outputs=[input_text])
-
     submit_btn.click(
         fn=query_local_llm,
-        inputs=input_text,
+        inputs=[input_text, story_text],
         outputs=output_text
     )    
+
     clear_btn.click(
         fn=clear_textboxes,
         inputs=None,
@@ -219,13 +281,20 @@ with gr.Blocks() as demo:
 
     retry_btn.click(
         fn = query_local_llm,
-        inputs=input_text,
+        inputs=[input_text, story_text],
         outputs=output_text
     )
+
     save_btn.click(
         fn = story_so_far, 
         inputs = [story_text, output_text], 
-        outputs=[story_text])
+        outputs=[story_text]
+    )
 
+    story_clear_btn.click(
+        fn=clear_story_so_far,
+        inputs=None,
+        outputs=story_text
+    )
 if __name__ == "__main__":
     demo.launch(server_name="0.0.0.0", share=True)

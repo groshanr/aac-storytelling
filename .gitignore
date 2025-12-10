@@ -4,10 +4,10 @@ olmo_model
 open-webui
 tokenizer
 olmo2_quantized.gguf
+olmo2_quantized_ft.gguf
 data/*
 __pycache__
 
-olmo_rag.ipynb
-chroma.ipynb
-qdrant.ipynb
-main.py
+
+compose.yaml
+Dockerfile
