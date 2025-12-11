@@ -24,6 +24,8 @@ The front end of the system is a Gradio-based Hugging Face Space (see demo below
 Check out the demo [here](
 https://huggingface.co/spaces/groshanr/AACtive_Storytelling). 
 
+Note: The model and inference endpoint go to sleep after a period of no use. You may need to click the **Restart Space** button and wait a few minutes after it is back up for the model to be callable. 
+
 ### Running locally
 #### Prerequisites
 - Your preferred method of locally running an LLM. I recommend [LM Studio](https://lmstudio.ai/).
